@@ -1,0 +1,73 @@
+pipeline {
+  agent {
+    docker {
+      image 'abhishekf5/maven-abhishek-docker-agent:v1'
+      args '--user root -v /var/run/docker.sock:/var/run/docker.sock' // mount Docker socket to access the host's Docker daemon
+    }
+  }
+  stages {
+    stage('Checkout') {
+      steps {
+        sh 'echo passed'
+        //git branch: 'main', url: 'https://github.com/sunitabachhav2007/Jenkins-Zero-To-Hero.git'
+      }
+    }
+    stage('Build and Test') {
+      steps {
+        sh 'ls -ltr'
+        // build the project and create a JAR file
+        sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn clean package'
+      }
+    }
+    stage('Static Code Analysis') {
+      environment {
+        SONAR_URL = "http://3.85.210.249:9000"
+      }
+      steps {
+        withCredentials([string(credentialsId: 'sonar', variable: 'SONAR_AUTH_TOKEN')]) {
+          sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}'
+        }
+      }
+    }
+stage('Build and Push Docker Image') {
+    environment {
+        DOCKER_IMAGE = "camilacarolina/ultimate-cicd:${BUILD_NUMBER}"
+    }
+    steps {
+        script {
+            sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && docker build -t ${DOCKER_IMAGE} .'
+
+            // Recupera o token do Jenkins Credentials
+            withCredentials([string(credentialsId: 'docker-cred', variable: 'DOCKER_TOKEN')]) {
+                sh 'echo $DOCKER_TOKEN | docker login -u seu-usuario-docker --password-stdin'
+
+                def dockerImage = docker.image("${DOCKER_IMAGE}")
+                dockerImage.push()
+
+                // Faz logout para evitar exposição do token no ambiente
+                sh 'docker logout'
+            }
+        }
+    }
+}
+stage('Update Deployment File') {
+        environment {
+            GIT_REPO_NAME = "seu-repositorio-git"
+            GIT_USER_NAME = "seu-usuario-git"
+        }
+        steps {
+            withCredentials([string(credentialsId: 'git', variable: 'GITHUB_TOKEN')]) {
+                sh '''
+                    git config user.email "seu-email-git@gmail.com"
+                    git config user.name "seu-usuario-git"
+                    BUILD_NUMBER=${BUILD_NUMBER}
+                    sed -i -e "s/ultimate-cicd.*/ultimate-cicd:${BUILD_NUMBER}/g"  java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+                    git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+                    git commit -m "Update deployment image to version ${BUILD_NUMBER}"
+                    git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
+                '''
+            }
+        }
+    }
+  }
+}
