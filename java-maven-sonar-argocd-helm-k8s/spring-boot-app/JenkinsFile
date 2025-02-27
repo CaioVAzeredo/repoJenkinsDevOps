@@ -30,7 +30,7 @@ pipeline {
         }
         stage('SCA - OWASP Dependency-Check') {
             steps {
-                sh 'mvn org.owasp:dependency-check-maven:check'
+                sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn org.owasp:dependency-check-maven:check'
             }
         }
         stage('Publicar Relatório') {
