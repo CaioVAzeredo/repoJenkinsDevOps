@@ -16,6 +16,6 @@ spec:
     spec:
       containers:
       - name: sprint-boot-app
-        image: camilacarolina/ultimate-cicd:20
+        image: camilacarolina/ultimate-cicd:21
         ports:
         - containerPort: 8080
