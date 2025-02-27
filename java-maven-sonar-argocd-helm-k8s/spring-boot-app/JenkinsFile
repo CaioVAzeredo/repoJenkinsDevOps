@@ -48,6 +48,7 @@ pipeline {
         stage('Validar Vulnerabilidades') {
             steps {
                 script {
+                  
                     def report = readFile('target/dependency-check-reports/dependency-check-report.html')
                     if (report.contains('CRITICAL')) {
                         error 'Vulnerabilidades críticas encontradas!'
