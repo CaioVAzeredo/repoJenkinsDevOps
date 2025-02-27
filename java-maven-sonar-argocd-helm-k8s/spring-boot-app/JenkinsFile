@@ -39,7 +39,7 @@ stage('Build and Push Docker Image') {
 
             // Recupera o token do Jenkins Credentials
             withCredentials([string(credentialsId: 'docker-cred', variable: 'DOCKER_TOKEN')]) {
-                sh 'echo $DOCKER_TOKEN | docker login -u seu-usuario-docker --password-stdin'
+                sh 'echo $DOCKER_TOKEN | docker login -u caiovazeredo --password-stdin'
 
                 def dockerImage = docker.image("${DOCKER_IMAGE}")
                 dockerImage.push()
