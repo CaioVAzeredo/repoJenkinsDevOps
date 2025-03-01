@@ -1,0 +1,10 @@
+version: 0.0
+os: linux
+files:
+  - source: /DevOps
+    destination: /var/www/html
+hooks:
+  BeforeInstall:
+    - location: scripts/delete_index.sh
+      timeout: 300
+      runas: root
